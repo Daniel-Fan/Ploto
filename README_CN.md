@@ -27,30 +27,20 @@ Consists of a PowerShell Module that allows to spawn, manage and move plots.
 
 # PlotoSpawn
 # 生成绘制
-TLDR: It plots 1x plot on each TempDrive (if you have 6x TempDrives = 6x parallel Plot Jobs) as long as you want it to and as long as you have OutDrive space.
+
 只要需要，只要有OutDrive空间，它就会在每个TempDrive上绘制1x绘图（如果您有6x TempDrives = 6x并行绘图作业）。
 
-Ploto checks periodically, if a TempDrive and OutDrive is available for plotting. 
-If there is no TempDrive available, or no OutDrive, Ploto checks again in 300 seconds.
 Ploto会定期检查是否可以使用TempDrive和OutDrive进行绘图。
 如果没有可用的TempDrive或OutDrive，Ploto将在300秒内再次检查。
 
-When there is one available, Ploto determines the best OutDrive (most free space) and calls chia.exe to start the plot.
-Ploto iterates once through all available TempDrives and spawns a plot per each TempDrive (as long as enough OutDrive space is given).
-After that, Ploto checks if amount Spawned is equal as defined as input. If not, Ploto keeps going until it is.
 如果有可用空间，Ploto会确定最佳的OutDrive（最大可用空间）并调用chia.exe来开始绘图。
 Ploto遍历所有可用的TempDrives一次，并为每个TempDrive生成一个图（只要有足够的OutDrive空间）。
 之后，Ploto将检查Spawned的数量是否等于输入的定义。如果没有，Ploto会一直坚持下去。
 
-You can specify several vital parameters to control when and where plots are spawned, temped and stored. 
-PlotoSpawner identifies your drives for temping and storing plots by a common denominator you specify. 
 您可以指定几个重要的参数来控制何时以及在何处生成，绘制和存储图。
 PlotoSpawner通过您指定的公分母来标识您的驱动器，以进行模板化和存储绘图。
 （公分母例如：新加卷）可以把最终储存驱动器的名称更换为`Chiaout1`,`Chiaout2`, 把缓存驱动器的名称更换为`Chiaplot1`,`Chiaplot2`
 
-IMPORTANT: Ploto Assumes you Plot in the root of your Drives and that the Drives are dedicated to plotting. So make sure you do that aswell.
-It may work when the drives contains other data but, but Ploto was designed for empty, plot-only drives.
-EDIT: I noticed I have a folder in my Q:\ drive with some data. So it seems to work. 
 重要信息：Ploto假定您在驱动器的根目录中进行绘图，并且这些驱动器专用于绘图。因此，请确保您也这样做。
 当驱动器包含其他数据时，它可能会起作用，但是Ploto是为空的，仅用于绘图的驱动器而设计的。
 编辑：我注意到我在Q：\驱动器中有一些数据的文件夹。这样看来行得通。
@@ -75,35 +65,26 @@ For reference heres my setup:
 |ChiaOut 1 | K:\ | SATA HDD | 465 GB
 |ChiaOut 2 | D:\ | SATA HDD | 465 GB
 
-So my denominators for my TempDrives its "plot" and for my destination drives its "out".
-If I'd want to use jost for example 2x drives as TempDrives, I'd rename those and adjust my denominator. For example to "plotThis"
 因此，对于我的TempDrive，我的分母就是它的“绘图”，对于目的地，我的分母是它的“输出”。
 如果我想将例如2x驱动器的jost用作TempDrives，则将其重命名并调整分母。例如“ plotThis”
 
-By default, Ploto spawns only 1x Plot Job on each Disk in parallel. So when I launch Ploto with default amount to spawn:
 默认情况下，Ploto在每个磁盘上并行仅生成1x绘图作业。因此，当我以默认生成量启动Ploto时：
 ```powershell
-Start-PlotoSpawns -InputAmountToSpawn 36 -OutDriveDenom "out" -TempDriveDenom "plot" -WaitTimeBetweenPlotOnSeparateDisks 15 EnableBitfield $false -MaxParallelJobsOnAllDisks 5
+Start-PlotoSpawns -BufferSize 3390 -Thread 2 -InputAmountToSpawn 36 -OutDriveDenom "out" -TempDriveDenom "plot" -WaitTimeBetweenPlotOnSeparateDisks 15 EnableBitfield $true -MaxParallelJobsOnAllDisks 5
 ```
-the following will happen:
-If there is enough free space on the temp and out drives, Ploto spawns 1x job on each disk with the specified wait time between jobs. For each job, it calculates the most suitable out drive anew, being aware of the plot jobs in progress on that disk.
+
 将会发生以下情况：
 如果临时驱动器和输出驱动器上有足够的可用空间，则Ploto将在每个磁盘上产生1x的作业，并在作业之间指定等待时间。对于每个作业，它都会知道该磁盘上正在进行的打印作业，从而重新计算最合适的输出驱动器。
 
-Using the Parameter "-MaxParallelJobsOnAllDisks", you can define how many Plots Jobs overall there should be in parallel. So this will be your hard cap. If there are as many jobs as you defined as max, PlotoSpawner wont spawn further Jobs. This keeps your system from overcommiting.
-
-So in our example:
-* Ploto will pause spawning, when there are 5x jobs spawned, and continues when one job finishes. It keeps going until it has spawned 36 plots or the script is cancelled by the user/system.
 使用参数“ -MaxParallelJobsOnAllDisks”，可以定义总体应并行多少个图作业。因此，这将是您的硬性规定。如果有多达您定义为最大数量的作业，则PlotoSpawner不会产生更多的作业。这样可以防止您的系统过量使用。
 
 ### I need more parallelization
 ### 我需要更多并行
-Using "-MaxParallelJobsOnSameDisks" you can define how many PlotsJobs there should be in parallel on a single disk. This param affects all Disks that can host more than 1 Plot. Ploto checks each disk for free space and determines the amount of plots it can hold as a tempDrive. Also being aware of the jobs in progress. It will spawn as many jobs as possible by the disk until it reached either the hard cap of -MaxParallelJobsOnAllDisks or -MaxParallelJobsOnSameDisk
 使用“ -MaxParallelJobsOnSameDisks”，您可以定义单个磁盘上应并行存在多少个PlotsJob。此参数影响可以承载1个以上Plot的所有磁盘。 Ploto会检查每个磁盘上的可用空间，并确定它可以作为tempDrive保留的打印数量。也知道正在进行的工作。在达到-MaxParallelJobsOnAllDisks或-MaxParallelJobsOnSameDisk的硬上限之前，它将通过磁盘产生尽可能多的作业。
 
 If I launch PlotoSpawner with these params like this:
 ```powershell
-Start-PlotoSpawns -InputAmountToSpawn 36 -OutDriveDenom "out" -TempDriveDenom "plot" -WaitTimeBetweenPlotOnSeparateDisks 15 -WaitTimeBetweenPlotOnSameDisk 60 -MaxParallelJobsOnAllDisks 7 -MaxParallelJobsOnSameDisk 3 -EnableBitfield $false
+Start-PlotoSpawns -BufferSize 3390 -Thread 2 -InputAmountToSpawn 36 -OutDriveDenom "out" -TempDriveDenom "plot" -WaitTimeBetweenPlotOnSeparateDisks 15 -WaitTimeBetweenPlotOnSameDisk 60 -MaxParallelJobsOnAllDisks 7 -MaxParallelJobsOnSameDisk 3 -EnableBitfield $true
 ```
 
 PlotoSpawner will at max spawn 7 parallel jobs, and max 3 Jobs in parallel on the same disk. This means for my temp drive setup the following:
@@ -115,12 +96,9 @@ PlotoSpawner will at max spawn 7 parallel jobs, and max 3 Jobs in parallel on th
 |ChiaPlot 4 | Q:\ | SATA SSD | 1810 GB | 3
 |ChiaPlot 5 | J:\ | NVME SSD PCI 16x | 465 GB | 1
 
-So there will be 7x Plot jobs running in parallel with defined wait time in minutes betwen jobs on each disk and the same Disk. 
-Drive Q:\ will never see more than 3x Plots in parallel as defined by -MaxParallelJobsOnSameDisk 3
 因此，在每个磁盘和同一磁盘上的作业之间，将有7x个并行执行的绘图作业与定义的等待时间（以分钟为单位）并行运行。
 驱动器Q：\不会看到-MaxParallelJobsOnSameDisk 3定义的并行3个以上的图。
 
-When a job is done and a temp drive becommes available again, PlotoSpawner will spawn the next jobs, until it has spawned the amount you specified as -InputAmountToSpawn or it reaches it max cap.
 当作业完成并且临时驱动器再次可用时，PlotoSpawner将产生下一个作业，直到产生了您指定为-InputAmountToSpawn的数量或达到最大上限为止。
 
 PlotoSpawner redirects the output of chia.exe to to the following path: 
@@ -154,14 +132,14 @@ If you want to use Ploto follow along.
 ## Spawn Plots（生成绘制）
 1. Make sure your Out and TempDrives are named accordingly（确保缓存驱动器和最终储存驱动器准备完成，查看下方链接，是否正确修改了名称，可以被程序识别
 * [Get-PlotoOutDrives](https://github.com/tydeno/Ploto/blob/main/README.md#get-plotooutdrives)）
-2. Download Ploto as .ZIP from [here](https://github.com/tydeno/Ploto/archive/refs/heads/main.zip)
+2. Download Ploto code
 3. Import-Module "Ploto" 
 ```powershell
 Import-Module "C:\Users\Me\Downloads\Ploto\Ploto.psm1"
 ```
 4. Launch PlotoSpawner
 ```powershell
-Start-PlotoSpawns -InputAmountToSpawn 36 -OutDriveDenom "out" -TempDriveDenom "plot" -WaitTimeBetweenPlotOnSeparateDisks 15 -WaitTimeBetweenPlotOnSameDisk 60 -MaxParallelJobsOnAllDisks 7 -MaxParallelJobsOnSameDisk 3 -EnableBitfield $false
+Start-PlotoSpawns -BufferSize 3390 -Thread 2 -InputAmountToSpawn 36 -OutDriveDenom "out" -TempDriveDenom "plot" -WaitTimeBetweenPlotOnSeparateDisks 15 -WaitTimeBetweenPlotOnSameDisk 60 -MaxParallelJobsOnAllDisks 7 -MaxParallelJobsOnSameDisk 3 -EnableBitfield $true
 ```
 ```
 PlotoSpawner @ 4/30/2021 3:19:13 AM : Spawned the following plot Job:
@@ -169,7 +147,7 @@ JobId :           ad917660-9de9-4810-8977-6ace317d7ddb
 ProcessID         : 13192
 OutDrive          : K:
 TempDrive         : Q:
-ArgumentsList     : plots create -k 32 -t Q:\ -d K:\ -e
+ArgumentsList     : plots create -k 32 -t Q:\ -d K:\
 ChiaVersionUsed   : 1.1.2
 LogPath           : C:\Users\me\.chia\mainnet\plotter\PlotoSpawnerLog_30_4_3_19_ad917660-9de9-4810-8977-6ace317d7ddb_Tmp-Q_Out-K.txt
 StartTime         : 4/30/2021 3:19:13 AM
